@@ -7,7 +7,7 @@ import nltk
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
-from deep_translator import GoogleTranslator, MyMemoryTranslator, LingvaTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 
 # NLTK টোকেনাইজার ডাউনলোড
 nltk.download('punkt', quiet=True)
@@ -23,9 +23,9 @@ FEEDS = {
     "⚡ টেক ও গ্যাজেট আপডেট (The Verge)": "https://www.theverge.com/rss/index.xml",
     "🚀 নতুন প্রযুক্তি ও উদ্ভাবন (MIT Tech Review)": "https://www.technologyreview.com/feed/",
     "🔬 বিজ্ঞান ও গবেষণা (ScienceDaily)": "https://www.sciencedaily.com/rss/all.xml",
-    "🧠 গভীর গবেষণা ও গণিত/বিজ্ঞান (Quanta)": "https://www.quantamagazine.org/feed/",
-    "📄 রিসার্চ পেপার - AI & ML (arXiv cs.AI)": "https://rss.arxiv.org/rss/cs.AI",
-    "📄 রিসার্চ পেপার - Computer Science (arXiv cs.LG)": "https://rss.arxiv.org/rss/cs.LG",
+    "🧠 গভীর গবেষণা ও বিজ্ঞান (Quanta)": "https://www.quantamagazine.org/feed/",
+    "📄 রিসার্চ পেপার - AI (arXiv cs.AI)": "https://rss.arxiv.org/rss/cs.AI",
+    "📄 রিসার্চ পেপার - ML (arXiv cs.LG)": "https://rss.arxiv.org/rss/cs.LG",
     "🌌 মহাকাশ ও নাসা (NASA)": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
 }
 
@@ -55,19 +55,9 @@ def translate_to_bangla(text):
     if not text:
         return ""
 
-    clean_text = text[:1200]
+    clean_text = text[:1000]
 
-    # ১ম চেষ্টা: LingvaTranslator (অনেক সময় Google সরাসরি ব্লক করলেও এটি কাজ করে)
-    for lingva_url in ["https://lingva.ml", "https://lingva.lunar.icu"]:
-        try:
-            res = LingvaTranslator(source='en', target='bn', base_url=lingva_url).translate(clean_text)
-            if res and has_bangla(res):
-                return res
-        except Exception as e:
-            print(f"Lingva ({lingva_url}) failed: {e}")
-            time.sleep(2)
-
-    # ২য় চেষ্টা: GoogleTranslator
+    # ১ম চেষ্টা: GoogleTranslator
     for attempt in range(2):
         try:
             res = GoogleTranslator(source='en', target='bn').translate(clean_text)
@@ -75,17 +65,17 @@ def translate_to_bangla(text):
                 return res
         except Exception as e:
             print(f"GoogleTranslator attempt {attempt + 1} failed: {e}")
-            time.sleep(5 * (attempt + 1))
+            time.sleep(6 * (attempt + 1))
 
-    # ৩য় চেষ্টা: MyMemoryTranslator
+    # ২য় চেষ্টা: MyMemoryTranslator (ব্যাকআপ)
     try:
-        res = MyMemoryTranslator(source='en', target='bn').translate(clean_text[:500])
+        res = MyMemoryTranslator(source='en-GB', target='bn-BD').translate(clean_text[:500])
         if res and has_bangla(res):
             return res
     except Exception as e:
         print(f"MyMemoryTranslator failed: {e}")
 
-    # কোনো ট্রান্সলেটর কাজ না করলে মূল ইংরেজি লেখাটিই দেবে
+    # কোনোটাতেই বাংলা না এলে মূল ইংরেজি লেখাটিই দেবে
     return clean_text
 
 def send_telegram_message(message):
@@ -117,7 +107,7 @@ def build_and_send_digest():
     for category, feed_url in FEEDS.items():
         try:
             parsed = feedparser.parse(feed_url)
-            entries = parsed.entries[:2]  # অনেক সোর্স থাকায় প্রতিটিতে ২টি করে রাখা হয়েছে
+            entries = parsed.entries[:2]
         except Exception as e:
             print(f"Feed parse error ({category}): {e}")
             continue
@@ -135,10 +125,9 @@ def build_and_send_digest():
 
             short_eng_summary = get_extractive_summary(raw_summary, sentences_count=2)
 
-            # রিকোয়েস্ট কমাতে Title ও Summary একসাথে অনুবাদ করা হচ্ছে
             combined_en = f"Title: {raw_title}\nSummary: {short_eng_summary}"
             bn_combined = translate_to_bangla(combined_en)
-            time.sleep(6)
+            time.sleep(7)
 
             safe_bn = bn_combined.replace("<", "&lt;").replace(">", "&gt;")
 
@@ -148,7 +137,7 @@ def build_and_send_digest():
             )
 
         send_telegram_message(message_block)
-        time.sleep(4)
+        time.sleep(5)
 
 if __name__ == "__main__":
     build_and_send_digest()
