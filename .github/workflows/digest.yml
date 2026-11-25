@@ -1,0 +1,32 @@
+name: Daily Bangla News & Research Digest
+
+on:
+  schedule:
+    # UTC 02:00 = বাংলাদেশ সময় সকাল ৮:০০ টা
+    # UTC 14:00 = বাংলাদেশ সময় রাত ৮:০০ টা
+    - cron: '0 2,14 * * *'
+  workflow_dispatch: # আপনি চাইলে GitHub থেকে ম্যানুয়ালিও রান করতে পারবেন
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Digest Script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
