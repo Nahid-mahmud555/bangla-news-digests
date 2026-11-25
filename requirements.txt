@@ -1,0 +1,6 @@
+feedparser
+sumy
+nltk
+deep-translator
+requests
+beautifulsoup4
