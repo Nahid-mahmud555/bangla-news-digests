@@ -1,1 +1,1 @@
-# bangla-news-digest
+# bangla-news-digests
